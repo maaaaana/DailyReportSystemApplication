@@ -1,6 +1,23 @@
-<head xmlns:th="http://www.thymeleaf.org" th:fragment="head_fragment(title)">
-<meta charset="utf-8">
-<title th:text="${title}"></title>
-<link rel="stylesheet" th:href="@{/css/bootstrap.min.css}">
-<script defer th:src="@{/js/bootstrap.min.js}"></script>
+<!-- templates/common/header.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<!-- ⭐ headタグ用のfragment（HTML <head>部分） -->
+<head th:fragment="head_fragment(title)">
+  <meta charset="utf-8">
+  <title th:text="${title}">日報管理システム</title>
+  <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}">
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+  <script defer th:src="@{/js/bootstrap.min.js}"></script>
 </head>
+
+<!-- ⭐ ページ上部に表示する共通ヘッダー -->
+<div th:fragment="header">
+  <header class="p-3 mb-2 border-bottom bg-light">
+    <div class="container">
+      <h1 class="h4">日報管理システム</h1>
+    </div>
+  </header>
+</div>
+
+</html>

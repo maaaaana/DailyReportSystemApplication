@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>日報詳細</title>
+</head>
+<body>
+    <h2>日報詳細</h2>
+
+    <table>
+        <tr>
+            <th>氏名：</th>
+            <td th:text="${report.employee.name}"></td>
+        </tr>
+        <tr>
+            <th>日付：</th>
+            <td th:text="${report.reportDate}"></td>
+        </tr>
+        <tr>
+            <th>タイトル：</th>
+            <td th:text="${report.title}"></td>
+        </tr>
+    </table>
+
+    <a th:href="@{/reports}">戻る</a>
+</body>
+</html>
