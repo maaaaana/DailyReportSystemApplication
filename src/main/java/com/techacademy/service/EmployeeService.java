@@ -8,11 +8,11 @@ import java.util.regex.Pattern;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.techacademy.constants.ErrorKinds;
 import com.techacademy.entity.Employee;
 import com.techacademy.repository.EmployeeRepository;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class EmployeeService {
@@ -25,10 +25,9 @@ public class EmployeeService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    // 従業員保存
+    // 従業員保存（新規作成用）
     @Transactional
     public ErrorKinds save(Employee employee) {
-
         // パスワードチェック
         ErrorKinds result = employeePasswordCheck(employee);
         if (ErrorKinds.CHECK_OK != result) {
@@ -41,10 +40,12 @@ public class EmployeeService {
         }
 
         employee.setDeleteFlg(false);
-
         LocalDateTime now = LocalDateTime.now();
         employee.setCreatedAt(now);
         employee.setUpdatedAt(now);
+
+        // ハッシュ化（2重防止つき）
+        encodePasswordIfNeeded(employee);
 
         employeeRepository.save(employee);
         return ErrorKinds.SUCCESS;
@@ -53,11 +54,10 @@ public class EmployeeService {
     // 従業員削除
     @Transactional
     public ErrorKinds delete(String code, UserDetail userDetail) {
-
-        // 自分を削除しようとした場合はエラーメッセージを表示
         if (code.equals(userDetail.getEmployee().getCode())) {
             return ErrorKinds.LOGINCHECK_ERROR;
         }
+
         Employee employee = findByCode(code);
         LocalDateTime now = LocalDateTime.now();
         employee.setUpdatedAt(now);
@@ -66,67 +66,59 @@ public class EmployeeService {
         return ErrorKinds.SUCCESS;
     }
 
-    // 従業員一覧表示処理
+    // 一覧取得
     public List<Employee> findAll() {
         return employeeRepository.findAll();
     }
 
-    // 1件を検索
+    // 1件取得
     public Employee findByCode(String code) {
-        // findByIdで検索
         Optional<Employee> option = employeeRepository.findById(code);
-        // 取得できなかった場合はnullを返す
-        Employee employee = option.orElse(null);
-        return employee;
+        return option.orElse(null);
     }
 
-    // 従業員パスワードチェック
+    // パスワードバリデーション
     private ErrorKinds employeePasswordCheck(Employee employee) {
-
-        // 従業員パスワードの半角英数字チェック処理
         if (isHalfSizeCheckError(employee)) {
-
             return ErrorKinds.HALFSIZE_ERROR;
         }
 
-        // 従業員パスワードの8文字～16文字チェック処理
         if (isOutOfRangePassword(employee)) {
-
             return ErrorKinds.RANGECHECK_ERROR;
         }
-
-        employee.setPassword(passwordEncoder.encode(employee.getPassword()));
 
         return ErrorKinds.CHECK_OK;
     }
 
-    // 従業員パスワードの半角英数字チェック処理
+    // 半角英数字チェック
     private boolean isHalfSizeCheckError(Employee employee) {
-
-        // 半角英数字チェック
         Pattern pattern = Pattern.compile("^[A-Za-z0-9]+$");
         Matcher matcher = pattern.matcher(employee.getPassword());
         return !matcher.matches();
     }
 
-    // 従業員パスワードの8文字～16文字チェック処理
+    // 8～16文字チェック
     public boolean isOutOfRangePassword(Employee employee) {
-
-        // 桁数チェック
         int passwordLength = employee.getPassword().length();
         return passwordLength < 8 || 16 < passwordLength;
     }
 
+    // ✅ 追加：パスワードがハッシュ済みかを判断してハッシュ化（重ねがけ防止）
+    private void encodePasswordIfNeeded(Employee employee) {
+        if (employee.getPassword() != null && !employee.getPassword().startsWith("$2a$")) {
+            employee.setPassword(passwordEncoder.encode(employee.getPassword()));
+        }
+    }
+
+    // ✅ 更新・新規共通の保存処理
     @Transactional
     public ErrorKinds save(Employee employee, boolean isNew) {
         if (isNew) {
-            // 重複チェック
             if (findByCode(employee.getCode()) != null) {
                 return ErrorKinds.DUPLICATE_ERROR;
             }
             employee.setCreatedAt(LocalDateTime.now());
         } else {
-            // 既存データを取得
             Employee dbEmployee = findByCode(employee.getCode());
             if (dbEmployee == null) {
                 return ErrorKinds.NOTFOUND_ERROR;
@@ -137,7 +129,6 @@ public class EmployeeService {
         employee.setUpdatedAt(LocalDateTime.now());
         employee.setDeleteFlg(false);
 
-        // パスワードが空ならDBの値を使う（更新時）
         if (employee.getPassword() == null || "".equals(employee.getPassword())) {
             if (!isNew) {
                 employee.setPassword(findByCode(employee.getCode()).getPassword());
@@ -145,17 +136,16 @@ public class EmployeeService {
                 return ErrorKinds.BLANK_ERROR;
             }
         } else {
-            // バリデーション
             ErrorKinds result = employeePasswordCheck(employee);
             if (ErrorKinds.CHECK_OK != result) {
                 return result;
             }
-            employee.setPassword(passwordEncoder.encode(employee.getPassword()));
+
+            // ✅ ハッシュ化（すでにされてるかも確認）
+            encodePasswordIfNeeded(employee);
         }
 
         employeeRepository.save(employee);
         return ErrorKinds.SUCCESS;
     }
-
-
 }
