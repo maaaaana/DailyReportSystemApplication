@@ -13,8 +13,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
-
-
 import java.util.List;
 
 @Controller
@@ -39,7 +37,7 @@ public class ReportController {
     }
 
     // 登録画面の表示
-    @GetMapping("/new")
+    @GetMapping("reports/new")
     public String showNewForm(Model model) {
         Report report = new Report();
 
@@ -55,7 +53,7 @@ public class ReportController {
         return "reports/new";
     }
 
-    @PostMapping("/new")
+    @PostMapping("reports/new")
     public String create(@ModelAttribute Report report) {
         // セッションからログイン中の従業員を取得
         Employee loginEmployee = (Employee) session.getAttribute("loginEmployee");
