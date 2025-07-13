@@ -117,4 +117,45 @@ public class EmployeeService {
         return passwordLength < 8 || 16 < passwordLength;
     }
 
+    @Transactional
+    public ErrorKinds save(Employee employee, boolean isNew) {
+        if (isNew) {
+            // 重複チェック
+            if (findByCode(employee.getCode()) != null) {
+                return ErrorKinds.DUPLICATE_ERROR;
+            }
+            employee.setCreatedAt(LocalDateTime.now());
+        } else {
+            // 既存データを取得
+            Employee dbEmployee = findByCode(employee.getCode());
+            if (dbEmployee == null) {
+                return ErrorKinds.NOTFOUND_ERROR;
+            }
+            employee.setCreatedAt(dbEmployee.getCreatedAt());
+        }
+
+        employee.setUpdatedAt(LocalDateTime.now());
+        employee.setDeleteFlg(false);
+
+        // パスワードが空ならDBの値を使う（更新時）
+        if (employee.getPassword() == null || "".equals(employee.getPassword())) {
+            if (!isNew) {
+                employee.setPassword(findByCode(employee.getCode()).getPassword());
+            } else {
+                return ErrorKinds.BLANK_ERROR;
+            }
+        } else {
+            // バリデーション
+            ErrorKinds result = employeePasswordCheck(employee);
+            if (ErrorKinds.CHECK_OK != result) {
+                return result;
+            }
+            employee.setPassword(passwordEncoder.encode(employee.getPassword()));
+        }
+
+        employeeRepository.save(employee);
+        return ErrorKinds.SUCCESS;
+    }
+
+
 }
